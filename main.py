@@ -1,0 +1,95 @@
+from rules import *
+from production import *
+
+
+class Choices:
+    def __init__(self):
+        self.common_questions = get_class_field_values(Common)
+        self.marsian_specific_questions = get_class_field_values(Marsian)
+        self.plutonian_specific_questions = get_class_field_values(Plutonian)
+        self.conclusions = [Loonling._conclusion, Earthling._conclusion, Marsian._conclusion, Alien._conclusion, Plutonian._conclusion]
+
+    def combine_questions(self):
+        return list(set(
+            self.common_questions +
+            self.marsian_specific_questions +
+            self.plutonian_specific_questions
+        ))
+
+    def forward(self, name):
+        print(f"Choose the facts about you:")
+        facts = ""
+        for index, fact in enumerate(self.combine_questions()):
+            fact = fact.replace("(?x)", "")
+            answer = input(f"{index + 1} {fact} (yes/any key to continue)\n")
+            if answer == "yes":
+                print(facts)
+                facts = facts + " " + str(index)
+        print("-----------------------------")
+        chain = []
+        for index in facts.split(" "):
+            try:
+                fact_index = int(index)
+                fact = self.combine_questions()[fact_index]
+                print(fact)
+                chain.append(fact.replace("(?x)", name))
+            except (ValueError, IndexError):
+                continue
+        chained_data = forward_chain(TOURIST_RULES, chain)
+
+        hints = []
+        for conclusion in self.conclusions:
+            dec_conclusion = conclusion.replace("(?x)", name)
+            if dec_conclusion in chained_data:
+                hints.append(dec_conclusion)
+        if not hints:
+            return f"{name} might be a Loonie."
+        hints_str = ', '.join(map(str, hints))
+        return hints_str
+
+    def backward(self, name):
+        print(f"Choose the tourist type from the list to execute backward chaining: ")
+        for index, conclusion in enumerate(self.conclusions):
+            conclusion = conclusion.replace("(?x)", name)
+            print(index + 1, conclusion)
+        selected = int(input("Choose: \n"))
+        print("-----------------------------")
+        if 1 <= selected <= 5:
+            goal = (self.conclusions[int(selected) - 1]).replace("(?x)", name)
+            print("goal: ", goal)
+            backward_chain_result = backward_chain(TOURIST_RULES, goal)
+            backward_chain_result_str = ', '.join(map(str, backward_chain_result))
+            return backward_chain_result_str
+        else:
+            return f"There is no such type of tourist."
+
+
+if __name__ == '__main__':
+    print("Welcome to Expert System!")
+    print("-----------------------------")
+    print("Let's find your tourist type.")
+    print("-----------------------------")
+
+    choices = Choices()
+
+    user_name = input("Please, write your name: \n")
+    print("-----------------------------")
+    print("Hello, " + user_name + "!")
+    print("-----------------------------")
+
+    while True:
+        print("Choose the algorithm you want to use: ")
+        algorithm = input("1 forward chaining\n2 backward chaining\n")
+        print("-----------------------------")
+        if algorithm == "1":
+            print(choices.forward(user_name))
+        elif algorithm == "2":
+            print(choices.backward(user_name))
+        else:
+            print("Please, write a valid number")
+        print("-----------------------------")
+        exit_command = input("Do you want to continue? (write yes/any key to exit the program):\n")
+        print("-----------------------------")
+        if exit_command != "yes":
+            print("Exiting...")
+            break
